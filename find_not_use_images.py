@@ -3,17 +3,19 @@
 import os, sys
 import subprocess
 import shlex
+import shutil
 import time
 __author__ = 'xieguobi'
 
 exclude_AppIcon = 'AppIcon.appiconset'
 exclude_LaunchImage = 'LaunchImage.launchimage'
-project_dir = "/Users/xieguobi/Documents/iOS workSpace/myDemo/MyUtils"
+project_dir = "/your_path"
+back_not_used_dir = "/your_path"
 auto_delete = 0
+auto_move = 0
 
 def find_exclude_images():
     exclude_images_set = set()
-    # command = "find %s -type d -name '%s'" % (project_dir,exclude_AppIcon)
 
     command = "find '{0}' -type d -name {other}".format(project_dir, other = exclude_AppIcon)
     s = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -39,6 +41,7 @@ def do_find_command(search_dir,file_type):
     if len(search_dir) == 0 or len(file_type) == 0:
         return set()
 
+    search_dir = search_dir.replace('\n','')
     all_names_set = set()
     command = "find '{}' -name '*.{other}' 2>/dev/null".format(search_dir,other = file_type)
     s = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
@@ -110,7 +113,6 @@ def delete_not_used_image(image):
     if len(image) == 0:
         return
 
-    command = "find %s \( -name '%s' -o -name '%s@*' \) 2>/dev/null" % (project_dir,image,image)
     command = "find '{}' \( -name '{other1}' -o -name '{other2}@*' \) 2>/dev/null".format(project_dir,other1 = image,other2 = image)
     s = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
     results = s.communicate()[0].split()
@@ -125,7 +127,25 @@ def delete_not_used_image(image):
             os.remove(path)
             print ('\r\n ========%s is deleted========' % image)
 
+def move_not_used_image(image):
+    if len(image) == 0:
+        return
 
+    command = "find '{}' \( -name '{other1}' -o -name '{other2}@*' \) 2>/dev/null".format(project_dir,other1 = image,other2 = image)
+    s = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    results = s.communicate()[0].split()
+    for path in results:
+
+        valid = 0
+        for type in support_types():
+            if path.endswith(type):
+                valid = 1
+                break
+        if valid:
+            filename, file_extension = os.path.splitext(path)
+            des_dir = os.path.join(back_not_used_dir,"{}{}".format(image,file_extension))
+            shutil.move(path,des_dir)
+            print ('\r\n ========%s is moved========' % image)
 
 def start_find_task():
 
@@ -165,6 +185,8 @@ def start_find_task():
             i = i + 1
             if auto_delete:
                 delete_not_used_image(image_name)
+            elif auto_move:
+                move_not_used_image(image_name)
 
 
 
